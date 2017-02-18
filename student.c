@@ -152,7 +152,7 @@ int main(int argc,char *argv[]){
 	printf("SN : %d ,MN: %d \n",S,M);
 
 	for(i=0;i<10;i++){
-		mutex[i] = PTHREAD_MUTEX_INITIALIZER;
+		pthread_mutex_init ( &(mutex[i]), NULL);
 	}
 
 	pthread_t student[S];
