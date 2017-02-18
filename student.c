@@ -1,9 +1,10 @@
 #include<stdio.h>
 #include<stdlib.h>
-#include <stdbool.h>
+#include<stdbool.h>
 #include<pthread.h>
 
 //这里我模拟的是 每个线程的互斥锁
+//如果某个线程 可以被抓取，那个student线程 会拿到抓取那个老师线程的 互斥锁 然后修改其数据 
 pthread_mutex_t mutex[10];
 
 //这里模拟的是 student number 和 marker number
@@ -18,16 +19,23 @@ struct demo_srelation{
 	int mid;
 };
 
-//这里是 marker 和 student 的关联关系，主要是用来抓取marker线程用，和在marker线程里面打印 student线程id 用
+//这里是 marker 和 student 的关联关系，主要是用来抓取marker线程用，和在marker线程里面打印 student线程id 
+//一下字段都是在student线程里  遍历的时候去modify的  因为这些字段在多线程共享  所以 如果能够被住区 student 要加锁然后 去修改
+//其中finish 字段是在 marker线程里修改的 
 struct demo_mrelation{
+	//该marker是否结束
 	bool finish;
+	//如果没有结束 那么查看该字段是否是空闲的
 	bool free;
+	//该marker的线程id
 	int mid;
+	//抓取该marker的student 线程id 
 	int sid;
 };
-
+//预留字段
 struct demo_srelation srelation[10];
 
+//这就是 student 线程去遍历的  共享变量数组 查看哪些是空闲的且没结束的  如果是的话，修改共享变量 直接抓取
 struct demo_mrelation mrelation[10];
 
 struct demo_parameters parameters;
@@ -122,6 +130,7 @@ void *markerT(void *argv){
 		printf("was grabbed by the student :%d\n",mrelation[markerId].sid);
 		count++;
 		if(count>=10){
+			mrelation[markerId].finish = true;
 			break;
 		}
 	}
