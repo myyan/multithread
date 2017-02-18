@@ -2,6 +2,10 @@
 #include<stdlib.h>
 #include<stdbool.h>
 #include<pthread.h>
+//假设每个学生需要 3个老师听取他的汇报
+#define P  3
+//假设每个老师需要听 4个学生的汇报
+#define Q  4
 
 //这里我模拟的是 每个线程的互斥锁
 //如果某个线程 可以被抓取，那个student线程 会拿到抓取那个老师线程的 互斥锁 然后修改其数据 
@@ -49,7 +53,7 @@ bool grabMarker(int sid){
 		if(!finish&&free){
 			mrelation[i].sid = sid;
 			count++;
-			if(count==3){
+			if(count==P){
 				break;
 			}
 		}
@@ -129,7 +133,7 @@ void *markerT(void *argv){
 		printf("current marker:%d is running\n",markerId);
 		printf("was grabbed by the student :%d\n",mrelation[markerId].sid);
 		count++;
-		if(count>=10){
+		if(count>=Q){
 			mrelation[markerId].finish = true;
 			break;
 		}
