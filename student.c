@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include<pthread.h>
 
+pthread_mutex_t mutex[10];
 struct demo_parameters {
 	int S;
 	int M;
@@ -67,6 +68,7 @@ bool haveTime(){
 void *studentT(void *argv){
 	int studentId = *(int *)argv;
 	printf("current student :%d\n",studentId);
+	//学生找到 一定数量的老师才能开始汇报 老师是共享资源 需要同步
 	bool ok = grabMarker(studentId);
 	bool havetime = haveTime();
 	if(ok&&havetime){
@@ -83,7 +85,16 @@ void *studentT(void *argv){
 */
 void *markerT(void *argv){
 	int markerId = *(int *)argv;
-	printf("current marker :%d\n",markerId);
+	int count =0;
+	//use count to simulation  but the main problem is how to be waked up by the student thread
+	//use some mechanism to deal with
+	while(1){
+		printf("current marker:%d is running\n",markerId);
+		count++;
+		if(count>=10){
+			break;
+		}
+	}
 }
 int main(int argc,char *argv[]){
 	
@@ -94,17 +105,23 @@ int main(int argc,char *argv[]){
 	parameters.M = atoi(argv[2]);
 	int S = parameters.S;
 	int M = parameters.M;
+	int i;
 	if(S>100 || M>100){
 		puts("Maximum 100 markers and 100 students allowd\n");
 		exit(1);
 	}
 	printf("SN : %d ,MN: %d \n",S,M);
+
+	for(i=0;i<10;i++){
+		mutex[i] = PTHREAD_MUTEX_INITIALIZER;
+	}
+
 	pthread_t student[S];
+
 	pthread_t marker[M];
 	int studentId[S];
 	int markerId[M];
 	//SN : student number  MN  : marker number
-	int i;
 	for(i=0;i<S;i++){
 		studentId[i] = i;
 		pthread_create(&student[i],NULL,studentT,&studentId[i]);
