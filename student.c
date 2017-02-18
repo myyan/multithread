@@ -3,17 +3,22 @@
 #include <stdbool.h>
 #include<pthread.h>
 
+//这里我模拟的是 每个线程的互斥锁
 pthread_mutex_t mutex[10];
+
+//这里模拟的是 student number 和 marker number
 struct demo_parameters {
 	int S;
 	int M;
 };
 
+//这里预留字段
 struct demo_srelation{
 	int sid;
 	int mid;
 };
 
+//这里是 marker 和 student 的关联关系，主要是用来抓取marker线程用，和在marker线程里面打印 student线程id 用
 struct demo_mrelation{
 	bool finish;
 	bool free;
@@ -80,16 +85,41 @@ void *studentT(void *argv){
 	老师线程 其实任务也不多
 	但是还是有难点的，难点主要在于：
 	1，如果student线程结束了 那么怎么通知marker线程？
-	2，marker线程 while的问题  
-
+	2，因为marker线程需要处理 特定数量的student线程  然后才推出 那么 应该是用while 来实现
+	当听了特定数量学生的汇报后 就可以离开 这里 就可以  break 
+	但是
+	
+	因为在 marker 线程里面需要打印 student 线程的id  
+	那么 如何获取 student 线程的id呢？ 这里面就应该使用 全局变量 来实现，全局变量保存
+	我准备用结构体数组来实现
+	为每个marker线程来创建一个全局变量
+	保存一下 几个字段
+	1.studentId  保存的是 grab marker 线程的 student线程id
+	2.markerId 保存的是 当前marker线程的id  其实 这个字段不用也行，因为我们用结构体数组的下标就表明了marker线程 id
+	因为每个线程都有一个 全局变量
+	3.isFinished 是否结束 : 结束的意思是 该老师已经听完了特定数量的报告
+	如果结束了 student去grab线程的时候 发现这个字段是true 就直接continue 
+	4.isFree 如果isFinished 是 false  那么 就 判断 isFree  如果是自由的(也就是说 没有被其他线程占用) 那么该marker线程就会被grab
+	此时 student 抓取线程的数量会加1 如果达到特定的数量 ok  就 去运行 运行前要去修改共享的变量 
+	是这样的  student 去grab的时候 通过共享变量 来遍历，遍历如果 能被抓取
+	那就 加上锁 因为有个 加锁的数组  每个下标代表每个线程的 锁
+	
 */
 void *markerT(void *argv){
 	int markerId = *(int *)argv;
 	int count =0;
 	//use count to simulation  but the main problem is how to be waked up by the student thread
 	//use some mechanism to deal with
+	int i;
 	while(1){
+		//这里应该被锁住  只有 指定的student 唤醒才行 因为需要等到 student grab完所需要的老师(指定数量)才行,而且即使student grab所有需要的
+		//老师后 还是需要 判断能不能运行 所以  应该等待student 准备完毕后才行
+		/*
+			因为student线程 在抓取老师的时候 如果抓取成功会锁定这个marker线程  
+			这里面 这里也用这个锁 然后 用condition 来唤醒
+		*/
 		printf("current marker:%d is running\n",markerId);
+		printf("was grabbed by the student :%d\n",mrelation[markerId].sid);
 		count++;
 		if(count>=10){
 			break;
